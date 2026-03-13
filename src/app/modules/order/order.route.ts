@@ -16,6 +16,7 @@ router.post(
 router.get('/', auth(USER_ROLE.admin), OrderControllers.getAllOrders);
 
 router.get('/:orderId', OrderControllers.getSingleOrder);
+router.post('/tracking', OrderControllers.trackingOrder);
 
 router.patch(
   '/:orderId',

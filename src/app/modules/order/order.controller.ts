@@ -37,6 +37,19 @@ const getSingleOrder = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
+const trackingOrder = catchAsync(async (req: Request, res: Response) => {
+  const { orderNumber, phone } = req.body;
+
+  const result = await OrderServices.trackingOrderFromDB(orderNumber, phone);
+
+  sendResponse(res, {
+    statusCode: httpStatus.OK,
+    success: true,
+    message: 'Order retrieved successfully',
+    data: result,
+  });
+});
+
 const updateOrder = catchAsync(async (req: Request, res: Response) => {
   const result = await OrderServices.updateOrderIntoDB(
     req.params.orderId,
@@ -66,6 +79,7 @@ export const OrderControllers = {
   createOrder,
   getAllOrders,
   getSingleOrder,
+  trackingOrder,
   updateOrder,
   deleteOrder,
 };

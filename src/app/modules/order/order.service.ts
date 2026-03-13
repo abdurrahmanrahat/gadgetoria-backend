@@ -259,6 +259,20 @@ const getSingleOrderFromDB = async (orderId: string) => {
   return order;
 };
 
+const trackingOrderFromDB = async (orderNumber: string, phone: string) => {
+  const order = await Order.findOne({
+    orderNumber,
+    phone,
+    isDeleted: false,
+  }).populate('orderItems.product');
+
+  if (!order) {
+    throw new AppError(httpStatus.NOT_FOUND, 'Order not found.');
+  }
+
+  return order;
+};
+
 const updateOrderIntoDB = async (orderId: string, payload: Partial<IOrder>) => {
   const updatedOrder = await Order.findByIdAndUpdate(orderId, payload, {
     new: true,
@@ -327,6 +341,7 @@ export const OrderServices = {
   createOrderIntoDB,
   getOrdersFromDB,
   getSingleOrderFromDB,
+  trackingOrderFromDB,
   updateOrderIntoDB,
   deleteOrderIntoDB,
 };
