@@ -35,10 +35,12 @@ const createOrderValidationSchema = z.object({
       .min(1, 'At least one order item is required'),
     subtotal: z
       .number({ required_error: 'Subtotal price is required' })
-      .min(0, 'Subtotal price must be non-negative'),
+      .min(0, 'Subtotal price must be non-negative')
+      .optional(),
     total: z
       .number({ required_error: 'Total price is required' })
-      .min(0, 'Total price must be non-negative'),
+      .min(0, 'Total price must be non-negative')
+      .optional(),
     paymentMethod: z
       .string({ required_error: 'Payment method is required' })
       .min(1, 'Payment method cannot be empty'),

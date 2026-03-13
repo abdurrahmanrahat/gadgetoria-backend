@@ -51,22 +51,27 @@ const orderSchema = new Schema<IOrder>(
     ],
     subtotal: {
       type: Number,
-      required: [true, 'Total price is required'],
+      required: false,
       min: [0, 'Total price cannot be negative'],
+    },
+    shippingCost: {
+      type: Number,
+      required: false,
+      default: 0,
     },
     total: {
       type: Number,
-      required: [true, 'Sub total price is required'],
+      required: false,
       min: [0, 'Sub total price cannot be negative'],
+    },
+    paymentMethod: {
+      type: String,
+      required: [true, 'Payment method is required'],
     },
     status: {
       type: String,
       enum: Object.values(ORDER_STATUS),
       default: ORDER_STATUS.pending,
-    },
-    paymentMethod: {
-      type: String,
-      required: [true, 'Payment method is required'],
     },
     isDeleted: {
       type: Boolean,

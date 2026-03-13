@@ -10,9 +10,10 @@ export interface IOrder extends Document {
   orderNotes?: string;
   shippingOption: 'dhaka' | 'outside';
   orderItems: TOrderItem[];
-  total: number;
-  subtotal: number;
+  total?: number;
+  subtotal?: number;
   paymentMethod: string;
+  shippingCost?: number;
   status?: keyof typeof ORDER_STATUS;
   isDeleted?: boolean;
 }

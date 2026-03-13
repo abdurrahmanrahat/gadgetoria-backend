@@ -1,4 +1,5 @@
 import httpStatus from 'http-status';
+import { Types } from 'mongoose';
 import QueryBuilder from '../../builder/QueryBuilder';
 import AppError from '../../errors/AppError';
 import { CategoryServices } from '../category/category.service';
@@ -32,6 +33,18 @@ const getProductsFromDB = async (query: Record<string, unknown>) => {
   const totalCount = (await countQuery.modelQuery).length;
 
   return { data, totalCount };
+};
+
+const getProductsByIdsFromDB = async (ids: string[]) => {
+  const objectIds = ids
+    .filter((id) => Types.ObjectId.isValid(id))
+    .map((id) => new Types.ObjectId(id));
+
+  const products = await Product.find({
+    _id: { $in: objectIds },
+  });
+
+  return products;
 };
 
 const getSingleProductFromDB = async (productSlug: string) => {
@@ -93,6 +106,7 @@ const deleteProductIntoDB = async (productId: string) => {
 export const ProductServices = {
   createProductIntoDB,
   getProductsFromDB,
+  getProductsByIdsFromDB,
   getSingleProductFromDB,
   updateProductIntoDB,
   deleteProductIntoDB,
