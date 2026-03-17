@@ -15,14 +15,17 @@ const createProductIntoDB = async (payload: TProduct) => {
 const getProductsFromDB = async (query: Record<string, unknown>) => {
   const allCategories = await CategoryServices.getAllCategoriesFromDB();
 
+  // separate queries
   const baseQuery = Product.find({ isDeleted: false }).lean();
+  const countBaseQuery = Product.find({ isDeleted: false });
+
   const productQuery = new QueryBuilder(baseQuery, query)
     .search(productSearchableFields)
     .filter(allCategories)
     .paginate()
     .sort();
 
-  const countQuery = new QueryBuilder(baseQuery, query)
+  const countQuery = new QueryBuilder(countBaseQuery, query)
     .search(productSearchableFields)
     .filter(allCategories);
 

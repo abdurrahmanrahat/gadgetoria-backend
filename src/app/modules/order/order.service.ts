@@ -226,6 +226,7 @@ const createOrderIntoDB = async (payload: IOrder) => {
 
 const getOrdersFromDB = async (query: Record<string, unknown>) => {
   const baseQuery = Order.find({ isDeleted: false }).lean();
+  const countBaseQuery = Order.find({ isDeleted: false });
 
   const orderQuery = new QueryBuilder(baseQuery, query)
     .search(orderSearchableFields)
@@ -233,7 +234,7 @@ const getOrdersFromDB = async (query: Record<string, unknown>) => {
     .paginate()
     .sort();
 
-  const countQuery = new QueryBuilder(baseQuery, query)
+  const countQuery = new QueryBuilder(countBaseQuery, query)
     .search(orderSearchableFields)
     .filter();
 

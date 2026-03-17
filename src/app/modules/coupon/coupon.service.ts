@@ -22,6 +22,7 @@ const createCouponIntoDB = async (payload: TCoupon) => {
 // get all
 const getAllCouponsFromDB = async (query: Record<string, unknown>) => {
   const baseQuery = Coupon.find({ isDeleted: false }).lean();
+  const countBaseQuery = Coupon.find({ isDeleted: false });
 
   const couponQuery = new QueryBuilder(baseQuery, query)
     .search(couponSearchableFields)
@@ -29,7 +30,7 @@ const getAllCouponsFromDB = async (query: Record<string, unknown>) => {
     .paginate()
     .sort();
 
-  const countQuery = new QueryBuilder(baseQuery, query)
+  const countQuery = new QueryBuilder(countBaseQuery, query)
     .search(couponSearchableFields)
     .filter();
 

@@ -123,6 +123,7 @@ const getReviewsStatsByProductFromDB = async (productId: string) => {
 
 const getAllReviewsFromDB = async (query: Record<string, unknown>) => {
   const baseQuery = ProductReview.find({ isDeleted: false }).lean();
+  const countBaseQuery = ProductReview.find({ isDeleted: false });
 
   const reviewQuery = new QueryBuilder(baseQuery, query)
     .search(productReviewSearchableFields)
@@ -130,7 +131,7 @@ const getAllReviewsFromDB = async (query: Record<string, unknown>) => {
     .paginate()
     .sort();
 
-  const countQuery = new QueryBuilder(baseQuery, query)
+  const countQuery = new QueryBuilder(countBaseQuery, query)
     .search(productReviewSearchableFields)
     .filter();
 

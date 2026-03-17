@@ -22,6 +22,7 @@ const createUserIntoDB = async (user: TUser) => {
 // get
 const getAllUsersFromDB = async (query: Record<string, unknown>) => {
   const baseQuery = User.find({ isDeleted: false }).select('-password').lean();
+  const countBaseQuery = User.find({ isDeleted: false }).select('-password');
 
   const userQuery = new QueryBuilder(baseQuery, query)
     .search(userSearchableFields) // adjust searchable fields if needed
@@ -29,7 +30,7 @@ const getAllUsersFromDB = async (query: Record<string, unknown>) => {
     .paginate()
     .sort();
 
-  const countQuery = new QueryBuilder(baseQuery, query)
+  const countQuery = new QueryBuilder(countBaseQuery, query)
     .search(userSearchableFields)
     .filter();
 
