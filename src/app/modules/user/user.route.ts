@@ -25,6 +25,7 @@ router.get(
 
 router.patch(
   '/:userId',
+  auth(USER_ROLE.user, USER_ROLE.admin),
   validateRequest(UserValidations.updateUserValidationSchema),
   UserControllers.updateUser,
 );

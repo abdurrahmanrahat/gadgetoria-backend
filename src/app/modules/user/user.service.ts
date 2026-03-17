@@ -1,7 +1,9 @@
 import httpStatus from 'http-status';
 import jwt, { JwtPayload } from 'jsonwebtoken';
+import QueryBuilder from '../../builder/QueryBuilder';
 import config from '../../config';
 import AppError from '../../errors/AppError';
+import { userSearchableFields } from './user.constant';
 import { TUser } from './user.interface';
 import { User } from './user.model';
 
@@ -18,10 +20,25 @@ const createUserIntoDB = async (user: TUser) => {
 };
 
 // get
-const getAllUsersFromDB = async () => {
-  // TODO: use QueryBuilder for search filter, and pagination.
-  const users = await User.find({}).select('-password');
-  return users;
+const getAllUsersFromDB = async (query: Record<string, unknown>) => {
+  const baseQuery = User.find({ isDeleted: false }).select('-password').lean();
+
+  const userQuery = new QueryBuilder(baseQuery, query)
+    .search(userSearchableFields) // adjust searchable fields if needed
+    .filter()
+    .paginate()
+    .sort();
+
+  const countQuery = new QueryBuilder(baseQuery, query)
+    .search(userSearchableFields)
+    .filter();
+
+  const [data, totalCount] = await Promise.all([
+    userQuery.modelQuery,
+    countQuery.modelQuery.countDocuments(),
+  ]);
+
+  return { data, totalCount };
 };
 
 const getSingleUserFromDB = async (userId: string) => {

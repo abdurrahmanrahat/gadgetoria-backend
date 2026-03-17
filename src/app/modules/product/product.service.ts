@@ -15,22 +15,21 @@ const createProductIntoDB = async (payload: TProduct) => {
 const getProductsFromDB = async (query: Record<string, unknown>) => {
   const allCategories = await CategoryServices.getAllCategoriesFromDB();
 
-  const productQuery = new QueryBuilder(
-    Product.find({ isDeleted: false }),
-    query,
-  )
+  const baseQuery = Product.find({ isDeleted: false }).lean();
+  const productQuery = new QueryBuilder(baseQuery, query)
     .search(productSearchableFields)
     .filter(allCategories)
     .paginate()
     .sort();
 
-  const data = await productQuery.modelQuery.sort({ createdAt: -1 });
-
-  const countQuery = new QueryBuilder(Product.find({ isDeleted: false }), query)
+  const countQuery = new QueryBuilder(baseQuery, query)
     .search(productSearchableFields)
     .filter(allCategories);
 
-  const totalCount = (await countQuery.modelQuery).length;
+  const [data, totalCount] = await Promise.all([
+    productQuery.modelQuery,
+    countQuery.modelQuery.countDocuments(),
+  ]);
 
   return { data, totalCount };
 };

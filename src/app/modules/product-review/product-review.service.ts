@@ -122,25 +122,22 @@ const getReviewsStatsByProductFromDB = async (productId: string) => {
 };
 
 const getAllReviewsFromDB = async (query: Record<string, unknown>) => {
-  const reviewQuery = new QueryBuilder(
-    ProductReview.find({ isDeleted: false }),
-    query,
-  )
+  const baseQuery = ProductReview.find({ isDeleted: false }).lean();
+
+  const reviewQuery = new QueryBuilder(baseQuery, query)
     .search(productReviewSearchableFields)
     .filter()
     .paginate()
-    .sort(); // default (newest) or oldest
+    .sort();
 
-  const data = await reviewQuery.modelQuery
-    // .populate('user')
-    .sort({ createdAt: -1 });
-  // use instant fetch call from frontend instead of populate
+  const countQuery = new QueryBuilder(baseQuery, query)
+    .search(productReviewSearchableFields)
+    .filter();
 
-  const totalCount = (
-    await new QueryBuilder(ProductReview.find({ isDeleted: false }), query)
-      .search(productReviewSearchableFields)
-      .filter().modelQuery
-  ).length;
+  const [data, totalCount] = await Promise.all([
+    reviewQuery.modelQuery.sort({ createdAt: -1 }),
+    countQuery.modelQuery.countDocuments(),
+  ]);
 
   return { data, totalCount };
 };

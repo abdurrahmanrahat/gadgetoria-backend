@@ -225,25 +225,27 @@ const createOrderIntoDB = async (payload: IOrder) => {
 };
 
 const getOrdersFromDB = async (query: Record<string, unknown>) => {
-  const baseQuery = Order.find({ isDeleted: false });
+  const baseQuery = Order.find({ isDeleted: false }).lean();
 
-  const queryBuilder = new QueryBuilder(baseQuery, query)
+  const orderQuery = new QueryBuilder(baseQuery, query)
     .search(orderSearchableFields)
     .filter()
     .paginate()
     .sort();
 
-  const orders = await queryBuilder.modelQuery
-    .populate('orderItems.product')
-    .sort({ createdAt: -1 });
-
-  const countQuery = new QueryBuilder(Order.find({ isDeleted: false }), query)
-    .search(orderSearchableFields) // match search fields
+  const countQuery = new QueryBuilder(baseQuery, query)
+    .search(orderSearchableFields)
     .filter();
 
-  const totalCount = (await countQuery.modelQuery).length;
+  const [data, totalCount] = await Promise.all([
+    orderQuery.modelQuery
+      .populate('orderItems.product')
+      .sort({ createdAt: -1 }),
 
-  return { data: orders, totalCount };
+    countQuery.modelQuery.countDocuments(),
+  ]);
+
+  return { data, totalCount };
 };
 
 const getSingleOrderFromDB = async (orderId: string) => {
