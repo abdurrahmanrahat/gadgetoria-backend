@@ -6,85 +6,11 @@ import {
   insideDhakaShippingCost,
   outsideDhakaShippingCost,
 } from '../../utils/shippingKey';
+import { Coupon } from '../coupon/coupon.model';
 import { Product } from '../product/product.model';
 import { orderSearchableFields } from './order.constants';
 import { IOrder } from './order.interface';
 import { Order } from './order.model';
-
-// const createOrderIntoDB = async (payload: IOrder) => {
-//   const session = await Order.startSession();
-
-//   try {
-//     session.startTransaction();
-
-//     // order number count
-//     const now = new Date();
-//     const yearMonth = `${now.getFullYear()}${(now.getMonth() + 1)
-//       .toString()
-//       .padStart(2, '0')}`; // e.g., 202508
-
-//     // Find the latest order for this month
-//     const lastOrder = await Order.findOne({
-//       isDeleted: false,
-//       orderNumber: new RegExp(`ORD-${yearMonth}-`),
-//     })
-//       .sort({ createdAt: -1 })
-//       .session(session)
-//       .exec();
-
-//     let sequence = 1;
-
-//     if (lastOrder && lastOrder.orderNumber) {
-//       // Extract last 6 digits for the sequence
-//       const lastSeq = parseInt(lastOrder.orderNumber.slice(-6), 10);
-//       sequence = lastSeq + 1;
-//     }
-
-//     const orderNumber = `ORD-${yearMonth}-${sequence
-//       .toString()
-//       .padStart(6, '0')}`;
-
-//     for (const item of payload.orderItems) {
-//       const updateResult = await Product.updateOne(
-//         {
-//           _id: item.product,
-//           stock: { $gte: item.quantity }, // make sure enough stock remains
-//         },
-//         {
-//           $inc: {
-//             stock: -item.quantity, // deduct stock
-//             salesCount: item.quantity, // increase sales count
-//           },
-//         },
-//         { session },
-//       );
-
-//       if (updateResult.modifiedCount === 0) {
-//         throw new AppError(
-//           httpStatus.BAD_REQUEST,
-//           `Insufficient stock for product ${item.product}`,
-//         );
-//       }
-//     }
-
-//     const createdOrder = await Order.create([{ ...payload, orderNumber }], {
-//       session,
-//     });
-
-//     await session.commitTransaction();
-//     session.endSession();
-
-//     return createdOrder[0];
-//   } catch (error: any) {
-//     await session.abortTransaction();
-//     session.endSession();
-
-//     throw new AppError(
-//       httpStatus.INTERNAL_SERVER_ERROR,
-//       error.message || 'Unknown error',
-//     );
-//   }
-// };
 
 const createOrderIntoDB = async (payload: IOrder) => {
   const session = await Order.startSession();
@@ -146,7 +72,6 @@ const createOrderIntoDB = async (payload: IOrder) => {
       }
 
       const itemTotal = product.sellingPrice * item.quantity;
-
       subtotal += itemTotal;
 
       return {
@@ -164,7 +89,99 @@ const createOrderIntoDB = async (payload: IOrder) => {
         ? insideDhakaShippingCost
         : outsideDhakaShippingCost;
 
-    const total = subtotal + shippingCost;
+    /* ================================
+       Coupon Logic (SECURE)
+    ================================= */
+    let discountAmount = 0;
+    let discountCouponCode: string | undefined = undefined;
+
+    if (payload.discountCouponCode) {
+      const coupon = await Coupon.findOne({
+        code: payload.discountCouponCode,
+        isDeleted: false,
+      }).session(session);
+
+      if (!coupon) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Invalid coupon');
+      }
+
+      if (!coupon.isActive) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Coupon is inactive');
+      }
+
+      if (coupon.expiresAt && coupon.expiresAt < new Date()) {
+        throw new AppError(httpStatus.BAD_REQUEST, 'Coupon expired');
+      }
+
+      if (coupon.limit && (coupon.uses || 0) >= coupon.limit) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          'Coupon usage limit reached',
+        );
+      }
+
+      // Scope check
+      let eligibleSubtotal = subtotal;
+
+      if (coupon.scope === 'specific') {
+        const eligibleItems = secureOrderItems.filter(
+          (item) =>
+            coupon.productIds?.some(
+              (id) => id.toString() === item.product.toString(),
+            ),
+        );
+
+        if (eligibleItems.length === 0) {
+          throw new AppError(
+            httpStatus.BAD_REQUEST,
+            'Coupon not applicable to selected products',
+          );
+        }
+
+        eligibleSubtotal = eligibleItems.reduce((sum, item) => {
+          return sum + item.price * item.quantity;
+        }, 0);
+      }
+
+      // Min order check
+      if (coupon.minOrder && eligibleSubtotal < coupon.minOrder) {
+        throw new AppError(
+          httpStatus.BAD_REQUEST,
+          `Minimum order is ${coupon.minOrder}`,
+        );
+      }
+
+      /* ================================
+         Calculate Discount
+      ================================= */
+      if (coupon.type === 'percentage') {
+        discountAmount = (eligibleSubtotal * coupon.value) / 100;
+      } else {
+        discountAmount = coupon.value;
+      }
+
+      if (coupon.maxDiscount) {
+        discountAmount = Math.min(discountAmount, coupon.maxDiscount);
+      }
+
+      discountAmount = Math.min(discountAmount, eligibleSubtotal);
+
+      /* ================================
+         Update Coupon Usage
+      ================================= */
+      await Coupon.updateOne(
+        { _id: coupon._id },
+        { $inc: { uses: 1 } },
+        { session },
+      );
+
+      discountCouponCode = coupon.code;
+    }
+
+    /* ================================
+       Final Total Calculation
+    ================================= */
+    const total = Math.max(subtotal + shippingCost - discountAmount, 0);
 
     /* ================================
        Update Stock
@@ -204,6 +221,8 @@ const createOrderIntoDB = async (payload: IOrder) => {
           subtotal,
           shippingCost,
           total,
+          discountCouponCode,
+          discountAmount,
         },
       ],
       { session },
@@ -319,6 +338,13 @@ const deleteOrderIntoDB = async (orderId: string) => {
           },
         },
         { session },
+      );
+    }
+
+    if (order?.discountCouponCode) {
+      await Coupon.updateOne(
+        { code: order.discountCouponCode },
+        { $inc: { uses: -1 } },
       );
     }
 

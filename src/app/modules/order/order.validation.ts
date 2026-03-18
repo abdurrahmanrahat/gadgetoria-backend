@@ -37,6 +37,12 @@ const createOrderValidationSchema = z.object({
       .number({ required_error: 'Subtotal price is required' })
       .min(0, 'Subtotal price must be non-negative')
       .optional(),
+    discountCouponCode: z
+      .string({ required_error: 'Discount coupon code is required' })
+      .optional(),
+    discountAmount: z
+      .number({ required_error: 'Discount amount is required' })
+      .optional(),
     total: z
       .number({ required_error: 'Total price is required' })
       .min(0, 'Total price must be non-negative')
@@ -56,6 +62,8 @@ const updateOrderValidationSchema = z.object({
     orderNotes: z.string().optional(),
     shippingOption: z.enum(['dhaka', 'outside']).optional(),
     subtotal: z.number().optional(),
+    discountCouponCode: z.string().optional(),
+    discountAmount: z.number().optional(),
     total: z.number().optional(),
     paymentMethod: z.enum(['CASH-ON-DELIVERY', 'DIGITAL-PAYMENT']).optional(),
     status: z.enum(ORDER_STATUS_VALUES).optional(),

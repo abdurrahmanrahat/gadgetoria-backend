@@ -30,9 +30,9 @@ const getAllCoupons = catchAsync(async (req, res) => {
 
 // get single
 const getSingleCoupon = catchAsync(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const { code } = req.params;
 
-  const result = await CouponServices.getSingleCouponFromDB(id);
+  const result = await CouponServices.getSingleCouponFromDB(code);
 
   sendResponse(res, {
     statusCode: httpStatus.OK,

@@ -15,7 +15,7 @@ router.post(
 );
 
 router.get('/', auth(USER_ROLE.admin), CouponControllers.getAllCoupons);
-router.get('/:id', CouponControllers.getSingleCoupon);
+router.get('/:code', CouponControllers.getSingleCoupon);
 
 router.patch(
   '/:id',

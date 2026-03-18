@@ -43,13 +43,13 @@ const getAllCouponsFromDB = async (query: Record<string, unknown>) => {
 };
 
 // get single
-const getSingleCouponFromDB = async (id: string) => {
-  const coupon = await Coupon.findOne({ _id: id, isDeleted: false });
+const getSingleCouponFromDB = async (code: string) => {
+  const coupon = await Coupon.findOne({ code: code, isDeleted: false });
 
   if (!coupon) {
     throw new AppError(
       httpStatus.NOT_FOUND,
-      `Coupon with id '${id}' not found`,
+      `Coupon with code '${code}' not found`,
     );
   }
 

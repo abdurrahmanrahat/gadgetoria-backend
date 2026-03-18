@@ -14,6 +14,8 @@ export interface IOrder extends Document {
   subtotal?: number;
   paymentMethod: string;
   shippingCost?: number;
+  discountCouponCode?: string;
+  discountAmount?: number;
   status?: keyof typeof ORDER_STATUS;
   isDeleted?: boolean;
 }
